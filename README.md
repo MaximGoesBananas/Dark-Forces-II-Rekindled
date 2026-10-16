@@ -72,13 +72,13 @@ Star Wars Jedi Knight: Dark Forces II **Rekindled** refreshes the single-player 
 
 - **Streamlined settings and improved mouse controls**
 
-- **Controller support for gameplay, menus, and upgrades**
-
 - **Automatic resolution support, including 4K and ultrawide**
 
 - **Auto-save feature, and quick loading for manual quick-saves**
 
 - **Level fixes that prevent getting stuck**
+
+- **Controller support for gameplay, menus, and upgrades** (full playthrough not yet tested)
 
 ## System requirements
 
