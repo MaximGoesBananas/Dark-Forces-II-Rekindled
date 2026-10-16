@@ -1,0 +1,23 @@
+DARK FORCES II REKINDLED
+
+An unofficial fan mod for Star Wars Jedi Knight: Dark Forces II.
+Jedi Knight, Star Wars and related names and artwork belong to Lucasfilm Ltd.
+Weapon illustrations are adapted from the original LucasArts Jedi Knight website.
+Original game archives, sounds, models and textures are not included.
+
+Powered by OpenJKDF2, copyright its contributors.
+Engine and library license texts are supplied in the licenses folder.
+The matching source archive accompanies the launcher download; see SOURCE.txt.
+OpenAL is a replaceable shared library. No restriction is imposed on debugging
+changes to the included LGPL components or relinking them with the engine.
+
+Libraries and embedded components include SDL, SDL_mixer, OpenAL Soft,
+GameNetworkingSockets, Protocol Buffers, PhysicsFS, GLEW, FreeGLUT, libpng,
+zlib, Ogg, Vorbis, Opus, Opusfile, libsmacker, libsmusher, fcaseopen,
+nativefiledialog-extended, nlohmann/json, and the MinGW/GCC runtimes.
+Their respective authors retain their copyrights and license terms.
+
+Launcher typography uses Orbitron by Matt McInerney, licensed under the SIL Open
+Font License 1.1. Its license is supplied as licenses/Orbitron-OFL.txt.
+
+It is not affiliated with or endorsed by Lucasfilm, Disney or OpenJKDF2.

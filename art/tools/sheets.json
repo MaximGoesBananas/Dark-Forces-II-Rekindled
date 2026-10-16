@@ -1,0 +1,38 @@
+{
+  "icons-supplies.png": {"grid": [4, 4], "palette": "purple", "slots": [
+    "SCAVENGER:0", "SCAVENGER:1", "SCAVENGER:2", "SCAVENGER:3",
+    "MEDIC:0", "MEDIC:1", "MEDIC:2", "MEDIC:3",
+    "BACTA:1", "BACTA:2", "BACTA:3", "LIGHT:1",
+    "LIGHT:2", "LIGHT:3", null, null]},
+  "icons-character.png": {"grid": [4, 4], "palette": "green", "slots": [
+    "HEALTH:0", "HEALTH:1", "HEALTH:2", "HEALTH:3",
+    "SHIELDS:0", "SHIELDS:1", "SHIELDS:2", "SHIELDS:3",
+    "ATHLETICS:0", "ATHLETICS:1", null, "ENDURANCE:1",
+    null, null, null, null]},
+  "icons-blasters.png": {"grid": [4, 4], "palette": "red", "slots": [
+    "BRYAR:1", "BRYAR:2", "BRYAR:3", "RIFLE:1",
+    "RIFLE:2", "RIFLE:3", "BOWCASTER:1", "BOWCASTER:2",
+    "BOWCASTER:3", "REPEATER:1", "REPEATER:2", "REPEATER:3",
+    null, null, null, null]},
+  "icons-heavy.png": {"grid": [4, 4], "palette": "red", "slots": [
+    "THERMAL:1", "THERMAL:2", "THERMAL:3", "RAIL:1",
+    "RAIL:2", "RAIL:3", "SEQUENCER:1", "SEQUENCER:2",
+    "SEQUENCER:3", "CONCUSSION:1", "CONCUSSION:2", "CONCUSSION:3",
+    null, null, null, null]},
+  "icons-jedi.png": {"grid": [3, 3], "palette": "blue", "slots": [
+    "FORCE:0", "SABER:1", "SABER:2",
+    "SABER:3", "FORCE:1", "FORCE:2",
+    "FORCE:3", null, null]},
+  "icons-polish.png": {"grid": [4, 2], "palette": "combat", "slots": [
+    "SABER:1", "SABER:2", "SABER:3", "BOWCASTER:3",
+    "BRYAR:3", "RIFLE:3", "REPEATER:3", null]},
+  "icons-breath-green.png": {"grid": [1, 1], "palette": "green", "slots": ["ENDURANCE:2"]},
+  "icons-quick-draw.png": {"grid": [1, 1], "palette": "green", "slots": ["ATHLETICS:2"]},
+  "icons-grip-boots.png": {"grid": [1, 1], "palette": "green", "slots": ["ATHLETICS:3"]},
+  "icons-endurance.png": {"grid": [1, 1], "palette": "green", "slots": ["ENDURANCE:0"]},
+  "icons-stand-firm.png": {"grid": [1, 1], "palette": "green", "slots": ["ENDURANCE:3"]},
+  "icons-athletics.png": {"grid": [1, 1], "palette": "green", "slots": ["ATHLETICS:0"]},
+  "icons-spread.png": {"grid": [4, 2], "palette": "red", "slots": [null, null, null, "BOWCASTER:3", null, null, null, null]},
+  "icons-spread-row.png": {"grid": [1, 1], "palette": "red", "slots": ["BOWCASTER:3"]},
+  "icons-spread-fan.png": {"grid": [1, 1], "crop": [80, 80, 1174, 1174], "palette": "red", "slots": ["BOWCASTER:3"]}
+}

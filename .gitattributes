@@ -1,0 +1,11 @@
+*.sh text eol=lf
+*.patch -text
+
+# Private artwork inputs and publication tooling
+art/tools/p_*.txt export-ignore
+tools/preview_readme.py export-ignore
+docs/VERIFICATION.md export-ignore
+tools/prepare_publication.py export-ignore
+tools/publish_release.py export-ignore
+tools/test_publish_release.py export-ignore
+art/tools/sky-prompts.json export-ignore

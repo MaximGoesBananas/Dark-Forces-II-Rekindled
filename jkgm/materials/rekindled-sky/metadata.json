@@ -1,0 +1,148 @@
+{
+  "materials": [
+    {
+      "albedo_map": "03sky09k.png",
+      "replaces": [
+        {
+          "name": "mat/03sky09k.mat",
+          "cel": 0
+        }
+      ],
+      "replaces_signatures": [],
+      "albedo_factor": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "albedo_map": "04sky01.png",
+      "replaces": [
+        {
+          "name": "mat/04sky01.mat",
+          "cel": 0
+        }
+      ],
+      "replaces_signatures": [],
+      "albedo_factor": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "albedo_map": "06sky01.png",
+      "replaces": [
+        {
+          "name": "mat/06sky01.mat",
+          "cel": 0
+        }
+      ],
+      "replaces_signatures": [],
+      "albedo_factor": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "albedo_map": "06sky02.png",
+      "replaces": [
+        {
+          "name": "mat/06sky02.mat",
+          "cel": 0
+        }
+      ],
+      "replaces_signatures": [],
+      "albedo_factor": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "albedo_map": "09skyb.png",
+      "replaces": [
+        {
+          "name": "mat/09skyb.mat",
+          "cel": 0
+        }
+      ],
+      "replaces_signatures": [],
+      "albedo_factor": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "albedo_map": "10sky2.png",
+      "replaces": [
+        {
+          "name": "mat/10sky2.mat",
+          "cel": 0
+        }
+      ],
+      "replaces_signatures": [],
+      "albedo_factor": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "albedo_map": "12sky3.png",
+      "replaces": [
+        {
+          "name": "mat/12sky3.mat",
+          "cel": 0
+        }
+      ],
+      "replaces_signatures": [],
+      "albedo_factor": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "albedo_map": "13cnsky2.png",
+      "replaces": [
+        {
+          "name": "mat/13cnsky2.mat",
+          "cel": 0
+        }
+      ],
+      "replaces_signatures": [],
+      "albedo_factor": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "albedo_map": "14sky.png",
+      "replaces": [
+        {
+          "name": "mat/14sky.mat",
+          "cel": 0
+        }
+      ],
+      "replaces_signatures": [],
+      "albedo_factor": [
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ]
+}
