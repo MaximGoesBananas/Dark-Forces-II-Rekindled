@@ -18,3 +18,5 @@ The launcher uses Orbitron Medium by The League of Moveable Type, distributed un
 the [SIL Open Font License](../launcher/fonts/OFL.txt).
 
 Jedi Knight and Star Wars belong to Lucasfilm. Rekindled is an unofficial fan project.
+
+The launcher icon is the original Jedi Knight game icon, credited to LucasArts/Lucasfilm.

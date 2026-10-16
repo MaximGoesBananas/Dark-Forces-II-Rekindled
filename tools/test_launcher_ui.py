@@ -25,5 +25,6 @@ with tempfile.TemporaryDirectory(dir=scratch) as work:
         '/r:System.IO.Compression.dll','/r:System.IO.Compression.FileSystem.dll','/r:System.Web.Extensions.dll',
         '/r:System.Windows.Forms.dll','/r:System.Drawing.dll',f'/resource:{root/"launcher/poster.jpg"},poster.jpg',
         f'/resource:{root/"launcher/fonts/Orbitron-Medium.ttf"},Orbitron.ttf',
+        f'/win32icon:{root/"launcher/game.ico"}',
         str(root/'launcher/Installer.cs'),str(root/'launcher/Program.cs'),str(root/'launcher/LauncherUITests.cs')],check=True)
-    subprocess.run([str(binary),str(package),str(scratch/'screens'),str(Path(work)/'Game fixture Å')],check=True)
+    subprocess.run([str(binary),str(package),str(scratch/'screens'),str(Path(work)/'Game fixture Å'),str(root/'launcher/game.ico')],check=True)

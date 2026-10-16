@@ -144,6 +144,7 @@ def main():
                     "/optimize+", "/platform:x64", f"/out:{binary}", f"/resource:{payload},mod.zip", f"/resource:{PROJECT / 'launcher/poster.jpg'},poster.jpg",
                     f"/resource:{PROJECT / 'launcher/fonts/Orbitron-Medium.ttf'},Orbitron.ttf",
                     f"/win32manifest:{PROJECT / 'launcher/app.manifest'}",
+                    f"/win32icon:{PROJECT / 'launcher/game.ico'}",
                     "/r:System.IO.Compression.dll", "/r:System.IO.Compression.FileSystem.dll",
                     "/r:System.Web.Extensions.dll", "/r:System.Windows.Forms.dll", "/r:System.Drawing.dll",
                     str(PROJECT / "launcher/Installer.cs"), str(PROJECT / "launcher/Program.cs"), str(metadata)], check=True)

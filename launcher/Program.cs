@@ -57,7 +57,9 @@ namespace ModLauncher
                 Marshal.FreeCoTaskMem(fontMemory);
             };
             Text = "Rekindled";
-            ShowIcon = false;
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+            Disposed += delegate { Icon.Dispose(); };
+            ShowIcon = true;
             ClientSize = new Size(760, 595);
             AutoScroll = true;
             StartPosition = FormStartPosition.CenterScreen;

@@ -13,6 +13,14 @@ static class LauncherUITests
     [System.Runtime.InteropServices.DllImport("user32.dll")] static extern int SetWindowLong(IntPtr h, int i, int v);
     static int checks;
     static void Check(bool ok, string message) { checks++; if (!ok) throw new Exception(message); }
+    static bool SameIcon(Icon first, Icon second) {
+        using(var a=first.ToBitmap()) using(var b=second.ToBitmap()) {
+            if(a.Size!=b.Size) return false;
+            for(int y=0;y<a.Height;y++) for(int x=0;x<a.Width;x++)
+                if(a.GetPixel(x,y)!=b.GetPixel(x,y)) return false;
+            return true;
+        }
+    }
     static T Field<T>(LauncherForm form, string name) { return (T)typeof(LauncherForm).GetField(name, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(form); }
     static void Put(string root, string name, string text) { string path=Path.Combine(root,name); Directory.CreateDirectory(Path.GetDirectoryName(path)); File.WriteAllText(path,text); }
     static void Capture(LauncherForm form,string path) {
@@ -41,6 +49,12 @@ static class LauncherUITests
             Check(rejected,"Reject invalid or incomplete game folder");
         }
         using(var form=new LauncherForm(installer)) {
+            using(var expected=new Icon(args[3],32,32)) {
+                Check(form.ShowIcon && SameIcon(form.Icon,expected),"Window uses the game icon");
+                if(!args[0].EndsWith(".zip"))
+                    using(var actual=Icon.ExtractAssociatedIcon(args[0]))
+                        Check(SameIcon(actual,expected),"Packaged EXE uses the game icon");
+            }
             form.ShowInTaskbar=false;form.StartPosition=FormStartPosition.Manual;form.Location=new Point(-10000,-10000);
             SetWindowLong(form.Handle,-20,GetWindowLong(form.Handle,-20)|0x08000000);
             form.Show();Application.DoEvents();
