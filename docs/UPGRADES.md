@@ -57,6 +57,39 @@ The lightsaber color slider runs green, blue, purple, yellow, then red. Green re
 the original default. Blue keeps the original blade shape and white core, with a stronger
 blue gradient; existing saved color choices remain the same.
 
+## Controller controls
+
+Xbox-style button names are used below. Connect a controller before starting or during play.
+
+| Control | Action |
+| --- | --- |
+| Left stick | Move |
+| Right stick | Look |
+| A | Jump |
+| B | Crouch |
+| X | Use doors and switches |
+| Y or right-stick click | Use selected Force power |
+| RT / LT | Primary / secondary fire |
+| LB / RB | Previous / next weapon |
+| D-pad left / right | Previous / next Force power |
+| D-pad up | Use bacta tank |
+| D-pad down | Toggle field light |
+| Left-stick click | Map |
+| Back / View | Upgrades |
+| Start / Menu | Pause |
+
+In Upgrades, use the D-pad or left stick to choose rows and pages, A to buy or
+refund the selected upgrade, and B or Back to close. LB and RB also change pages.
+Refund rules are the same as with the keyboard.
+
+In other menus, use the D-pad or stick to navigate, A to select, and B to go back.
+LB and RB cycle through controls, including settings sliders. Left and right adjust
+a selected slider; X applies the page's OK action. Sensitivity and Invert look in
+Setup affect the right stick as well as the mouse.
+
+Existing custom controller button assignments are preserved. The Windows launcher
+still uses a mouse or keyboard. SteamOS and Proton have not been verified.
+
 ## Points, branches and the menu
 
 Setup's Autosave slider offers Off or 1-15 minutes, defaulting to 5 minutes of gameplay.
@@ -185,8 +218,8 @@ a hit, so they protect both shields and health, and never change damage to enemi
 
 ### Weapons
 
-Fists, the Bryar pistol and the stormtrooper rifle use primary fire only; their
-duplicate secondary attacks are disabled. All other weapons keep their distinct
+Fists, the Bryar pistol, the stormtrooper rifle and the concussion rifle use primary
+fire only. All other weapons keep their distinct
 secondary modes. Fire bindings stay configurable, and primary fire is unchanged.
 
 Weapon headings and the switching strip use cleaned official weapon artwork in its original

@@ -582,7 +582,7 @@ index 772381fa..e1491c49 100644
  
  void sithCogFunctionThing_GetThingTemplate(sithCog *pCog)
 diff --git a/src/Devices/sithControl.c b/src/Devices/sithControl.c
-index 58ae328b..754d42c5 100644
+index 58ae328b..88b236ab 100644
 --- a/src/Devices/sithControl.c
 +++ b/src/Devices/sithControl.c
 @@ -1,4 +1,5 @@
@@ -591,15 +591,16 @@ index 58ae328b..754d42c5 100644
  
  #include "General/sithStrTable.h"
  #include "Platform/stdControl.h"
-@@ -26,6 +27,7 @@
+@@ -26,6 +27,8 @@
  #include "jk.h"
  
  // Added
 +static int sithControl_mouseDpi = 800; // RPG: metadata; saved axes remain actual multipliers.
++static void sithControl_RekindledControllerBindings(void);
  static int sithControl_followingPlayer = 0;
  static int sithControl_curDebugCam = 0;
  static char16_t sithControl_debugWStrTmp[256];
-@@ -116,6 +118,10 @@ static const char *sithControl_aFunctionStrs[INPUT_FUNC_MAX+1] =
+@@ -116,6 +119,10 @@ static const char *sithControl_aFunctionStrs[INPUT_FUNC_MAX+1] =
      "ACTIVATE31",
  #ifdef QOL_IMPROVEMENTS
      "USELASTSELECTED", // Common button for both items and force power usage for controllers
@@ -610,7 +611,7 @@ index 58ae328b..754d42c5 100644
  #endif // QOL_IMPROVEMENTS
      "INPUT_FUNC_MAX"
  };
-@@ -259,6 +265,10 @@ void sithControl_RegisterControlFunctions()
+@@ -259,6 +266,10 @@ void sithControl_RegisterControlFunctions()
          sithControl_inputFuncToControlType[INPUT_FUNC_DEBUG] = 4 | 1;
  #ifdef QOL_IMPROVEMENTS
      sithControl_inputFuncToControlType[INPUT_FUNC_USELASTSELECTED] = 4 | 1;
@@ -621,7 +622,7 @@ index 58ae328b..754d42c5 100644
  #endif
  }
  
-@@ -553,8 +563,47 @@ LABEL_7:
+@@ -553,8 +564,47 @@ LABEL_7:
      }
  }
  
@@ -665,11 +666,11 @@ index 58ae328b..754d42c5 100644
  int sithControl_ReadConf()
  {
 +    sithControl_mouseDpi = 800; // Old profiles keep their exact mouse response.
-+    int hasUpgradeMenuSetting = 0, hasBactaSetting = 0, hasVisionSetting = 0;
++    int hasUpgradeMenuSetting = 0, hasBactaSetting = 0, hasVisionSetting = 0, hasControllerSetting = 0;
      unsigned int v0; // eax
      int v1; // esi
      unsigned int dxKeyNum; // ebx
-@@ -590,6 +639,26 @@ int sithControl_ReadConf()
+@@ -590,6 +640,30 @@ int sithControl_ReadConf()
      {
          if ( !_strcmp(stdConffile_g_entry.aArgs[0].key, "end.") )
              break;
@@ -685,6 +686,10 @@ index 58ae328b..754d42c5 100644
 +            hasVisionSetting = 1;
 +            continue;
 +        }
++        if (!_strcmp(stdConffile_g_entry.aArgs[0].key, "rpgcontroller")) {
++            hasControllerSetting = 1;
++            continue;
++        }
 +        if (!_strcmp(stdConffile_g_entry.aArgs[0].key, "rpgmousedpi")) {
 +            int dpi;
 +            char trailing;
@@ -696,7 +701,7 @@ index 58ae328b..754d42c5 100644
          v18 = 0.0;
          if ( !_strcmp(stdConffile_g_entry.aArgs[0].value, "axis") )
          {
-@@ -600,7 +669,7 @@ int sithControl_ReadConf()
+@@ -600,7 +674,7 @@ int sithControl_ReadConf()
          {
              v0 = _atoi(stdConffile_g_entry.aArgs[1].value);
              v1 = v0;
@@ -705,7 +710,7 @@ index 58ae328b..754d42c5 100644
              {
                  dxKeyNum = _atoi(stdConffile_g_entry.aArgs[2].value);
                  dxKeyNum_ = dxKeyNum;
-@@ -677,6 +746,32 @@ LABEL_30:
+@@ -677,6 +751,33 @@ LABEL_30:
              }
          }
      }
@@ -735,10 +740,11 @@ index 58ae328b..754d42c5 100644
 +    }
 +    sithControl_MigrateBactaKey(hasBactaSetting);
 +    sithControl_MigrateVisionKey(hasVisionSetting);
++    if (!hasControllerSetting) sithControl_RekindledControllerBindings();
      return 1;
  }
  
-@@ -706,6 +801,11 @@ int sithControl_WriteConf()
+@@ -706,6 +807,12 @@ int sithControl_WriteConf()
  
      }
  
@@ -747,10 +753,39 @@ index 58ae328b..754d42c5 100644
 +    stdConffile_WriteLine("rpgupgrademenu=1\n");
 +    stdConffile_WriteLine("rpgbactakey=1\n");
 +    stdConffile_WriteLine("rpgvisionkey=1\n");
++    stdConffile_WriteLine("rpgcontroller=1\n");
      stdConffile_WriteLine("end.\n");
      return 1;
  }
-@@ -872,6 +972,16 @@ LABEL_18:
+@@ -820,6 +927,19 @@ LABEL_23:
+     return v6;
+ }
+ 
++static flex_t sithControl_ControllerLookScale(int funcId, const stdControlKeyInfoEntry* entry)
++{
++    if (Main_bMotsCompat || sithNet_isMulti || !(entry->flags & INPUT_MAPPING_FLAG_AXIS)
++        || entry->dxKeyNum >= AXIS_MOUSE_X || (funcId != INPUT_FUNC_TURN && funcId != INPUT_FUNC_PITCH))
++        return 1.0;
++    // Map the displayed 1-10 sensitivity to 0.2-2x stick speed; 5 keeps the default.
++    flex_t sensitivity = sithControl_GetMouseSensitivity();
++    flex_t scale = isfinite(sensitivity) && sensitivity > 0 ? (1.0 + log2(sensitivity / 0.0025)) / 5.0 : 1.0;
++    if (scale < 0.2) scale = 0.2;
++    if (scale > 2.0) scale = 2.0;
++    return funcId == INPUT_FUNC_PITCH && sithControl_GetMouseInverted() ? -scale : scale;
++}
++
+ flex_t sithControl_GetKeyAsAxis(int axisId)
+ {
+     uint32_t v1; // ebp
+@@ -858,6 +978,7 @@ LABEL_12:
+                             v4 = -v4;
+                         if ( v2->binaryAxisVal != 0.0 )
+                             v4 = v4 * v2->binaryAxisVal;
++                        v4 *= sithControl_ControllerLookScale(axisId, v2);
+                         v6 = v6 + v4;
+                     }
+                     goto LABEL_18;
+@@ -872,6 +993,16 @@ LABEL_18:
      return v6;
  }
  
@@ -767,7 +802,7 @@ index 58ae328b..754d42c5 100644
  flex_t sithControl_GetAxis(int axisId)
  {
      stdControlKeyInfoEntry *v1; // edi
-@@ -897,7 +1007,9 @@ flex_t sithControl_GetAxis(int axisId)
+@@ -897,7 +1028,9 @@ flex_t sithControl_GetAxis(int axisId)
                  v5 = (flex_d_t)stdControl_ReadAxisRaw(v2->dxKeyNum);
                  if ( (v4 & 4) != 0 )
                      v5 = -v5;
@@ -778,7 +813,7 @@ index 58ae328b..754d42c5 100644
                      v5 = v5 * v2->binaryAxisVal;
                  v7 = v5 + v7;
              }
-@@ -910,6 +1022,60 @@ flex_t sithControl_GetAxis(int axisId)
+@@ -910,6 +1043,60 @@ flex_t sithControl_GetAxis(int axisId)
      return v7;
  }
  
@@ -839,7 +874,7 @@ index 58ae328b..754d42c5 100644
  void sithControl_RegisterControlCallback(sithControl_handler_t pfCallback)
  {
      // The original engine had an off-by-one here?
-@@ -955,6 +1121,8 @@ int sithControl_HandlePlayer(SithThing *player, flex_t deltaSecs)
+@@ -955,6 +1142,8 @@ int sithControl_HandlePlayer(SithThing *player, flex_t deltaSecs)
      if ( player->moveType != SITH_MT_PHYSICS )
          return 0;
  
@@ -848,7 +883,7 @@ index 58ae328b..754d42c5 100644
      // Added: dedicated
      if (sithNet_isServer && jkGuiNetHost_bIsDedicated) {
          sithControl_PlayerLook(player, deltaSecs);
-@@ -1622,6 +1790,15 @@ void sithControl_PlayerMovement(SithThing *player)
+@@ -1622,6 +1811,15 @@ void sithControl_PlayerMovement(SithThing *player)
          if ( v11 < 0.0 )
              y_vel = y_vel * 0.5;
          player->physicsParams.acceleration.y = y_vel;
@@ -864,7 +899,7 @@ index 58ae328b..754d42c5 100644
          if ( v11 > 0.2 && (sithWeapon_controlOptions & 0x10) != 0 )
          {
              if ( (player->actorParams.flags & SITH_AF_VIEWCENTRED) == 0 )
-@@ -1853,19 +2030,17 @@ void sithControl_RegisterKeyboardBindings()
+@@ -1853,19 +2051,17 @@ void sithControl_RegisterKeyboardBindings()
          sithControl_BindControl(INPUT_FUNC_SLIDE, DIK_NUMPAD3, 0);
      }
      
@@ -889,7 +924,7 @@ index 58ae328b..754d42c5 100644
      sithControl_BindControl(INPUT_FUNC_PITCH, DIK_PRIOR, 4);
      sithControl_BindControl(INPUT_FUNC_PITCH, DIK_NEXT, 0);
      sithControl_BindControl(INPUT_FUNC_CENTER, DIK_HOME, 0);
-@@ -1880,19 +2055,21 @@ void sithControl_RegisterKeyboardBindings()
+@@ -1880,19 +2076,21 @@ void sithControl_RegisterKeyboardBindings()
      sithControl_BindControl(INPUT_FUNC_SELECT7, DIK_7, 0);
      sithControl_BindControl(INPUT_FUNC_SELECT8, DIK_8, 0);
      sithControl_BindControl(INPUT_FUNC_SELECT9, DIK_9, 0);
@@ -915,7 +950,7 @@ index 58ae328b..754d42c5 100644
      sithControl_BindControl(INPUT_FUNC_MAP, DIK_TAB, 0);
      sithControl_BindControl(INPUT_FUNC_INCREASE, DIK_EQUALS, 0);
      sithControl_BindControl(INPUT_FUNC_DECREASE, DIK_MINUS, 0);
-@@ -1906,6 +2083,7 @@ void sithControl_RegisterKeyboardBindings()
+@@ -1906,6 +2104,7 @@ void sithControl_RegisterKeyboardBindings()
  
  void sithControl_DefaultInit()
  {
@@ -923,7 +958,7 @@ index 58ae328b..754d42c5 100644
      stdControlKeyInfoEntry *v6; // eax
      stdControlKeyInfoEntry *v7; // eax
      stdControlKeyInfoEntry *v8; // eax
-@@ -1917,7 +2095,7 @@ void sithControl_DefaultInit()
+@@ -1917,7 +2116,7 @@ void sithControl_DefaultInit()
  
      // Enable joystick by default
  #ifdef QOL_IMPROVEMENTS
@@ -932,7 +967,7 @@ index 58ae328b..754d42c5 100644
  #else
      sithWeapon_controlOptions = 0x24;
  #endif
-@@ -2046,6 +2224,24 @@ stdControlKeyInfo* sithControl_EnumBindings(sithControlEnumFunc_t pfFunc, int a2
+@@ -2046,6 +2245,24 @@ stdControlKeyInfo* sithControl_EnumBindings(sithControlEnumFunc_t pfFunc, int a2
      v20 = sithControl_aInputFuncToKeyinfo;
      for (int j = 0; j < INPUT_FUNC_MAX; j++)
      {
@@ -957,7 +992,7 @@ index 58ae328b..754d42c5 100644
          int flags = sithControl_inputFuncToControlType[v7];
  
          v18 = 0;
-@@ -2111,7 +2307,7 @@ void sithControl_RegisterMouseBindings()
+@@ -2111,7 +2328,7 @@ void sithControl_RegisterMouseBindings()
  #ifdef QOL_IMPROVEMENTS
      v10 = sithControl_BindAxis(INPUT_FUNC_TURN, AXIS_MOUSE_X, INPUT_MAPPING_FLAG_AXIS_REVERSED | INPUT_MAPPING_FLAG_RAW_AXIS);
      if ( v10 )
@@ -966,7 +1001,7 @@ index 58ae328b..754d42c5 100644
  #else
      v10 = sithControl_BindAxis(INPUT_FUNC_TURN, AXIS_MOUSE_X, INPUT_MAPPING_FLAG_AXIS_REVERSED | INPUT_MAPPING_FLAG_RAW_AXIS);
      if ( v10 )
-@@ -2121,7 +2317,7 @@ void sithControl_RegisterMouseBindings()
+@@ -2121,7 +2338,7 @@ void sithControl_RegisterMouseBindings()
  #ifdef QOL_IMPROVEMENTS
      v10 = sithControl_BindAxis(INPUT_FUNC_PITCH, AXIS_MOUSE_Y, INPUT_MAPPING_FLAG_AXIS_REVERSED | INPUT_MAPPING_FLAG_RAW_AXIS); // Non-inverted by default, fight me lol
      if ( v10 ) 
@@ -975,7 +1010,7 @@ index 58ae328b..754d42c5 100644
  #else
      v10 = sithControl_BindAxis(INPUT_FUNC_PITCH, AXIS_MOUSE_Y, INPUT_MAPPING_FLAG_RAW_AXIS);
      if ( v10 ) 
-@@ -2133,7 +2329,7 @@ void sithControl_RegisterMouseBindings()
+@@ -2133,7 +2350,7 @@ void sithControl_RegisterMouseBindings()
          v10->binaryAxisVal = 4.0;
      
      sithControl_DefaultHelper(INPUT_FUNC_FIRE1, KEY_MOUSE_B1, 2);
@@ -984,6 +1019,45 @@ index 58ae328b..754d42c5 100644
      sithControl_DefaultHelper(INPUT_FUNC_FIRE2, KEY_MOUSE_B3, 2);
  }
  
+@@ -2403,6 +2620,30 @@ void sithControl_RestoreAxisBindings()
+     }
+ }
+ 
++static void sithControl_RekindledControllerBindings(void)
++{
++    if (Main_bMotsCompat || sithNet_isMulti) return;
++    const int bindings[][3] = {
++        {KEY_JOY1_B1, INPUT_FUNC_USELASTSELECTED, INPUT_FUNC_JUMP},
++        {KEY_JOY1_B4, INPUT_FUNC_JUMP, INPUT_FUNC_USESKILL},
++        {KEY_JOY1_B8, INPUT_FUNC_USEINV, INPUT_FUNC_MAP},
++        {KEY_JOY1_HUP, INPUT_FUNC_NEXTINV, INPUT_FUNC_USEBACTA},
++        {KEY_JOY1_HDOWN, INPUT_FUNC_PREVINV, INPUT_FUNC_USEVISION},
++        {KEY_JOY1_B5, -1, INPUT_FUNC_UPGRADEMENU}
++    };
++    for (size_t i = 0; i < sizeof(bindings)/sizeof(bindings[0]); i++) {
++        int assigned = -1;
++        for (int f = 0; f < INPUT_FUNC_MAX; f++)
++            for (uint32_t j = 0; j < sithControl_aInputFuncToKeyinfo[f].numEntries; j++) {
++                stdControlKeyInfoEntry* e = &sithControl_aInputFuncToKeyinfo[f].aEntries[j];
++                if ((e->flags & INPUT_MAPPING_FLAG_DXKEY) && e->dxKeyNum == bindings[i][0]) assigned = f;
++            }
++        // Keep custom bindings; replace only the stock action or an unused button.
++        if (assigned == -1 || assigned == bindings[i][1])
++            sithControl_BindControl(bindings[i][2], bindings[i][0], 0);
++    }
++}
++
+ void sithControl_MapDefaultsJoystick() {
+ #if !defined(TARGET_RETRO_HOMEBREW) && defined(QOL_IMPROVEMENTS)
+     stdControlKeyInfoEntry* mapped;
+@@ -2449,6 +2690,7 @@ void sithControl_MapDefaultsJoystick() {
+ 
+     sithControl_DefaultHelper(INPUT_FUNC_FIRE2, KEY_JOY1_B16, 2); // ltrig
+     sithControl_DefaultHelper(INPUT_FUNC_FIRE1, KEY_JOY1_B17, 2); // rtrig
++    sithControl_RekindledControllerBindings();
+ #elif defined(TARGET_RETRO_HOMEBREW) // TODO split out analog vs no analog controls
+     sithControl_BindControl(INPUT_FUNC_FORWARD, KEY_JOY1_HUP, 0);
+     sithControl_BindControl(INPUT_FUNC_NEXTSKILL, KEY_JOY1_HDOWN, 0);
 diff --git a/src/Devices/sithControl.h b/src/Devices/sithControl.h
 index b3fdd9bf..1445bd7b 100644
 --- a/src/Devices/sithControl.h
@@ -2582,10 +2656,19 @@ index 4154d22d..6a23eb3c 100644
  
  #endif // _JKGUIPLAYER_H
 diff --git a/src/Gui/jkGUIRend.c b/src/Gui/jkGUIRend.c
-index e6d71b06..0a902b6d 100644
+index e6d71b06..c5b166bf 100644
 --- a/src/Gui/jkGUIRend.c
 +++ b/src/Gui/jkGUIRend.c
-@@ -967,7 +967,7 @@ void jkGuiRend_RenderFocused(jkGuiMenu *menu, jkGuiElement *element)
+@@ -27,6 +27,8 @@ static WindowDrawHandler_t jkGuiRend_idk2 = 0;
+ static WindowDrawHandler_t jkGuiRend_idk = 0;
+ static stdSound_buffer_t* jkGuiRend_DsoundHandles[4] = {0};
+ static jkGuiMenu *jkGuiRend_activeMenu = NULL;
++
++int jkGuiRend_IsMenuActive(void) { return jkGuiRend_activeMenu != NULL; }
+ static tVBuffer* jkGuiRend_menuBuffer = NULL;
+ static tVBuffer *jkGuiRend_texture_dword_8561E8 = NULL;
+ 
+@@ -967,7 +969,7 @@ void jkGuiRend_RenderFocused(jkGuiMenu *menu, jkGuiElement *element)
      jkGuiElement *focusedElement; // edi
  
      focusedElement = menu->focusedElement;
@@ -2594,7 +2677,7 @@ index e6d71b06..0a902b6d 100644
      {
          menu->focusedElement = element;
          if ( focusedElement )
-@@ -2044,7 +2044,7 @@ int jkGuiRend_SliderEventHandler(jkGuiElement *element, jkGuiMenu *menu, int32_t
+@@ -2044,7 +2046,7 @@ int jkGuiRend_SliderEventHandler(jkGuiElement *element, jkGuiMenu *menu, int32_t
                      if ( v31 <= (int32_t)v32 )
                          v32 = v31;
                  }
@@ -2603,8 +2686,117 @@ index e6d71b06..0a902b6d 100644
                  jkGuiRend_UpdateAndDrawClickable(v29, menu, 1);
                  return 0;
              }
+@@ -2637,6 +2639,11 @@ void jkGuiRend_FocusElementDir(jkGuiMenu *pMenu, int32_t dir)
+         }
+     }
+ 
++    if (focusedElement->type == ELEMENT_SLIDER && (dir == FOCUS_LEFT || dir == FOCUS_RIGHT)) {
++        jkGuiRend_InvokeEvent(focusedElement, pMenu, JKGUI_EVENT_KEYDOWN, dir == FOCUS_LEFT ? VK_LEFT : VK_RIGHT);
++        return;
++    }
++
+     rdRect curFocus = focusedElement->rect;
+     // Move the current focus rect position to position of the corresponding edge
+     if (dir == FOCUS_LEFT || dir == FOCUS_RIGHT)
+@@ -2831,6 +2838,34 @@ LABEL_22:
+ // TODO: QOL ifdef?
+ static jkGuiMenu* jkGuiRend_lastActiveMenu = NULL;
+ static jkGuiMenu* jkGuiRend_B1Menu = NULL;
++static void jkGuiRend_ControllerFocusStep(jkGuiMenu* menu, int step)
++{
++    jkGuiElement* previous = menu->focusedElement ? menu->focusedElement : menu->lastMouseOverClickable;
++    int count = 0;
++    while (menu->paElements[count].type != ELEMENT_END) ++count;
++    if (!count) return;
++    int index = previous ? (int)(previous - menu->paElements) : (step > 0 ? count - 1 : 0);
++    for (int i = 0; i < count; ++i) {
++        index = (index + step + count) % count;
++        jkGuiElement* element = &menu->paElements[index];
++        if (!element->bIsVisible || element->type == ELEMENT_TEXT || element->type >= ELEMENT_8) continue;
++        menu->focusedElement = (element->type == ELEMENT_LISTBOX || element->type == ELEMENT_TEXTBOX || element->type == ELEMENT_SLIDER) ? element : NULL;
++        jkGuiRend_ClickableMouseover(menu, element);
++        if (previous) jkGuiRend_UpdateAndDrawClickable(previous, menu, 1);
++        jkGuiRend_UpdateAndDrawClickable(element, menu, 1);
++        return;
++    }
++}
++
++static void jkGuiRend_ControllerAccept(jkGuiMenu* menu)
++{
++    jkGuiElement* element = menu->focusedElement;
++    if (!element || !element->bIsVisible) element = menu->lastMouseOverClickable;
++    if (!element || !element->bIsVisible) element = menu->pReturnKeyShortcutElement;
++    if (!element || !element->bIsVisible || element->type == ELEMENT_SLIDER) return;
++    jkGuiRend_InvokeClicked(element, menu, element->rect.x + 1, element->rect.y + 1, 1);
++}
++
+ void jkGuiRend_UpdateController()
+ {
+     if (!jkGuiRend_activeMenu) {
+@@ -2893,6 +2928,11 @@ void jkGuiRend_UpdateController()
+     lastJoyXLeft = joyXLeft;
+     lastJoyYUp = joyYUp;
+ 
++    val = 0;
++    if (stdControl_ReadKey(KEY_JOY1_B10, &val) && val) jkGuiRend_ControllerFocusStep(jkGuiRend_activeMenu, -1);
++    val = 0;
++    if (stdControl_ReadKey(KEY_JOY1_B11, &val) && val) jkGuiRend_ControllerFocusStep(jkGuiRend_activeMenu, 1);
++    val = 0;
+     valB1 = stdControl_ReadKey(KEY_JOY1_B1, &val);
+ 
+     extern jkGuiMenu jkGuiSaveLoad_menu;
+@@ -2905,12 +2945,7 @@ void jkGuiRend_UpdateController()
+ 
+         // HACK: Prevent player from killing themselves on load or save
+         if (jkGuiRend_activeMenu != &jkGuiSaveLoad_menu && !(jkGuiRend_activeMenu == &jkGuiDialog_OkCancel_menu && jkGuiRend_lastActiveMenu == &jkGuiSaveLoad_menu)) {
+-            jkGuiElement* prevFocusedElement = jkGuiRend_activeMenu->focusedElement;
+-            jkGuiRend_WindowHandler(0, WM_KEYFIRST, VK_RETURN, 0, 0);
+-            if (prevFocusedElement == jkGuiRend_activeMenu->focusedElement && pB1Menu == jkGuiRend_activeMenu) {
+-                jkGuiRend_activeMenu->lastMouseDownClickable = jkGuiRend_activeMenu->lastMouseOverClickable;
+-                jkGuiRend_InvokeClicked(jkGuiRend_activeMenu->lastMouseOverClickable, jkGuiRend_activeMenu, jkGuiRend_mouseX, jkGuiRend_mouseY, 1);
+-            }
++            jkGuiRend_ControllerAccept(jkGuiRend_activeMenu);
+             stdPlatform_Printf("a1\n");
+         }
+     }
+@@ -2919,12 +2954,7 @@ void jkGuiRend_UpdateController()
+         lastB1 = valB1; // Ugh, recursion junk
+ 
+         if ((jkGuiRend_activeMenu == &jkGuiSaveLoad_menu || (jkGuiRend_activeMenu == &jkGuiDialog_OkCancel_menu && jkGuiRend_lastActiveMenu == &jkGuiSaveLoad_menu)) && jkGuiRend_B1Menu == jkGuiRend_activeMenu) {
+-            jkGuiElement* prevFocusedElement = jkGuiRend_activeMenu->focusedElement;
+-            jkGuiRend_WindowHandler(0, WM_KEYFIRST, VK_RETURN, 0, 0);
+-            if (prevFocusedElement == jkGuiRend_activeMenu->focusedElement && pB1Menu == jkGuiRend_activeMenu) {
+-                jkGuiRend_activeMenu->lastMouseDownClickable = jkGuiRend_activeMenu->lastMouseOverClickable;
+-                jkGuiRend_InvokeClicked(jkGuiRend_activeMenu->lastMouseOverClickable, jkGuiRend_activeMenu, jkGuiRend_mouseX, jkGuiRend_mouseY, 1);
+-            }
++            jkGuiRend_ControllerAccept(jkGuiRend_activeMenu);
+             stdPlatform_Printf("a2\n");
+         }
+ 
+@@ -2946,7 +2976,7 @@ void jkGuiRend_UpdateController()
+         }
+     }
+ 
+-    if (!stdControl_IsSystemKeyboardShowing() || jkGuiRend_activeMenu->focusedElement != currentKeyboardFocusedElement) {
++    if (!jkGuiRend_activeMenu || !stdControl_IsSystemKeyboardShowing() || jkGuiRend_activeMenu->focusedElement != currentKeyboardFocusedElement) {
+         stdControl_HideSystemKeyboard();
+         keyboardShowedLastUpdate = 0;
+         currentKeyboardFocusedElement = NULL;
+diff --git a/src/Gui/jkGUIRend.h b/src/Gui/jkGUIRend.h
+index b5e7863f..8a1dbae2 100644
+--- a/src/Gui/jkGUIRend.h
++++ b/src/Gui/jkGUIRend.h
+@@ -6,6 +6,8 @@
+ 
+ #include "Primitives/rdRect.h"
+ 
++int jkGuiRend_IsMenuActive(void);
++
+ #define jkGuiRend_CopyVBuffer_ADDR (0x0050F4B0)
+ #define jkGuiRend_SetPalette_ADDR (0x0050F4F0)
+ #define jkGuiRend_DrawRect_ADDR (0x0050F510)
 diff --git a/src/Gui/jkGUISetup.c b/src/Gui/jkGUISetup.c
-index 1975a79d..80b1b94e 100644
+index 1975a79d..814a1c5a 100644
 --- a/src/Gui/jkGUISetup.c
 +++ b/src/Gui/jkGUISetup.c
 @@ -18,6 +18,17 @@
@@ -2625,7 +2817,7 @@ index 1975a79d..80b1b94e 100644
  
  static jkGuiElement jkGuiSetup_buttons[9] = {
      {ELEMENT_TEXT, 0, 0, 0, 3, {0, 410, 640, 20}, 1, 0, 0, 0, 0, 0, {0}, 0},
-@@ -70,98 +81,197 @@ void jkGuiSetup_sub_412EF0(jkGuiMenu *menu, int a2)
+@@ -70,98 +81,199 @@ void jkGuiSetup_sub_412EF0(jkGuiMenu *menu, int a2)
      }
  }
  
@@ -2687,7 +2879,7 @@ index 1975a79d..80b1b94e 100644
 +
 +    RPGSETUP_LABEL("Autosave", 40, 377), RPGSETUP_SLIDER(15, 40, 394),                    RPGSETUP_VALUE(40, 394),
 +
-+    RPGSETUP_CHECK("Invert mouse look", 350, 308),
++    RPGSETUP_CHECK("Invert look", 350, 308),
 +    RPGSETUP_CHECK("Subtitles", 350, 325),
 +    RPGSETUP_CHECK("Auto-aim", 350, 342),
 +    RPGSETUP_CHECK("Weapon sway", 350, 359),
@@ -2731,6 +2923,8 @@ index 1975a79d..80b1b94e 100644
 +    default:              jk_snwprintf(out, 16, u"%d%%", v); break;
 +    }
 +    element[1].wstr = out;
++    element[-1].textType = menu->lastMouseOverClickable == element ? 1 : 0;
++    jkGuiRend_UpdateAndDrawClickable(&element[-1], menu, 1);
 +    jkGuiRend_SliderDraw(element, menu, vbuf, redraw);
 +    jkGuiRend_UpdateAndDrawClickable(&element[1], menu, 1);
 +}
@@ -7467,10 +7661,10 @@ index 00000000..abca28cd
 +#endif // _JKRPGINTERNAL_H
 diff --git a/src/Main/jkRpgMenu.c b/src/Main/jkRpgMenu.c
 new file mode 100644
-index 00000000..380469a0
+index 00000000..8e5e6088
 --- /dev/null
 +++ b/src/Main/jkRpgMenu.c
-@@ -0,0 +1,2071 @@
+@@ -0,0 +1,2082 @@
 +#include "jkRpg.h"
 +#include "jkRpgInternal.h"
 +
@@ -8072,15 +8266,24 @@ index 00000000..380469a0
 +int jkRpg_MenuInput(SithThing* p)
 +{
 +    jkRpg_FixSelection(p);
-+    if (jkRpg_KeyPressed(DIK_UP) || jkRpg_KeyPressed(DIK_W))
++    static int lastX, lastY;
++    flex_t x = stdControl_ReadAxis(AXIS_JOY1_X), y = stdControl_ReadAxis(AXIS_JOY1_Y);
++    int dirX = x < -0.5 ? -1 : x > 0.5 ? 1 : 0;
++    int dirY = y < -0.5 ? -1 : y > 0.5 ? 1 : 0;
++    int moveX = dirX != lastX ? dirX : 0, moveY = dirY != lastY ? dirY : 0;
++    lastX = dirX; lastY = dirY;
++    if (jkRpg_KeyPressed(KEY_JOY1_B2)) return 0;
++    if (jkRpg_KeyPressed(DIK_UP) || jkRpg_KeyPressed(DIK_W) || jkRpg_KeyPressed(KEY_JOY1_HUP) || moveY < 0)
 +        jkRpg_MoveSel(p, -1);
-+    if (jkRpg_KeyPressed(DIK_DOWN) || jkRpg_KeyPressed(DIK_S))
++    if (jkRpg_KeyPressed(DIK_DOWN) || jkRpg_KeyPressed(DIK_S) || jkRpg_KeyPressed(KEY_JOY1_HDOWN) || moveY > 0)
 +        jkRpg_MoveSel(p, 1);
-+    if (jkRpg_KeyPressed(DIK_LEFT) || jkRpg_KeyPressed(DIK_A) || jkRpg_KeyPressed(DIK_Q))
++    if (jkRpg_KeyPressed(DIK_LEFT) || jkRpg_KeyPressed(DIK_A) || jkRpg_KeyPressed(DIK_Q)
++        || jkRpg_KeyPressed(KEY_JOY1_HLEFT) || jkRpg_KeyPressed(KEY_JOY1_B10) || moveX < 0)
 +        jkRpg_MovePage(p, -1);
-+    if (jkRpg_KeyPressed(DIK_RIGHT) || jkRpg_KeyPressed(DIK_D) || jkRpg_KeyPressed(DIK_E) || jkRpg_KeyPressed(DIK_TAB))
++    if (jkRpg_KeyPressed(DIK_RIGHT) || jkRpg_KeyPressed(DIK_D) || jkRpg_KeyPressed(DIK_E) || jkRpg_KeyPressed(DIK_TAB)
++        || jkRpg_KeyPressed(KEY_JOY1_HRIGHT) || jkRpg_KeyPressed(KEY_JOY1_B11) || moveX > 0)
 +        jkRpg_MovePage(p, 1);
-+    if (jkRpg_KeyPressed(DIK_RETURN) || jkRpg_KeyPressed(DIK_SPACE))
++    if (jkRpg_KeyPressed(DIK_RETURN) || jkRpg_KeyPressed(DIK_SPACE) || jkRpg_KeyPressed(KEY_JOY1_B1))
 +        jkRpg_Toggle(p, jkRpg_menuSel);
 +    return 1;
 +}
@@ -8432,7 +8635,9 @@ index 00000000..380469a0
 +    jkRpg_Rect(x + U(MENU_PAD), dy + line / 2, inner, PX(1), 110, 58, 26, 255); // above the key help
 +    dy += line;
 +    const char* key = jkRpg_MenuKeyName();
-+    stdString_snprintf(tmp, sizeof(tmp), "Up/Down or W/S: choose    Left/Right, A/D or Q/E: page    Enter: buy or take back    %s%s",
++    if (stdControl_bHasPhysicalJoystick)
++        stdString_snprintf(tmp, sizeof(tmp), "D-pad/stick: choose/page    A: buy or take back    B/Back: close");
++    else stdString_snprintf(tmp, sizeof(tmp), "Up/Down or W/S: choose    Left/Right, A/D or Q/E: page    Enter: buy or take back    %s%s",
 +                       key ? key : "Bind Upgrade Menu in Setup", key ? ": close" : " to close");
 +    jkRpg_MenuText(pFont, x + w / 2, dy, inner, u, 1, 140, tmp);
 +}
@@ -11871,10 +12076,10 @@ index 20c6c956..c61813e5 100644
  
  rdFace *rdFace_New();
 diff --git a/src/Win95/Window.c b/src/Win95/Window.c
-index 157e0583..3c4a0f34 100644
+index 157e0583..088d0994 100644
 --- a/src/Win95/Window.c
 +++ b/src/Win95/Window.c
-@@ -12,6 +12,8 @@
+@@ -12,9 +12,12 @@
  #include "Platform/stdControl.h"
  #include "stdPlatform.h"
  #include "Devices/sithConsole.h"
@@ -11883,7 +12088,22 @@ index 157e0583..3c4a0f34 100644
  #include "Platform/wuRegistry.h"
  #include "Main/jkQuakeConsole.h"
  #include "Main/jkTouchControls.h"
-@@ -1211,6 +1213,9 @@ void Window_SdlUpdate()
++#include "Dss/sithMulti.h"
+ 
+ #include "Dw/dwMain.h"
+ 
+@@ -1177,7 +1180,9 @@ void Window_SdlUpdate()
+             case SDL_EVENT_GAMEPAD_BUTTON_UP:
+                 if (bIsGamepad) {
+                     //stdPlatform_Printf("gpad button %d, %d\n", event.gbutton.button, event.gbutton.state);
+-                    if (event.gbutton.button == SDL_GAMEPAD_BUTTON_START || event.gbutton.button == SDL_GAMEPAD_BUTTON_BACK) {
++                    if (event.gbutton.button == SDL_GAMEPAD_BUTTON_START
++                        || (event.gbutton.button == SDL_GAMEPAD_BUTTON_BACK
++                            && (!event.gbutton.down || jkGuiRend_IsMenuActive() || jkCutscene_isRendering || Main_bMotsCompat || sithNet_isMulti))) {
+                         stdControl_bControllerEscapeKey = event.gbutton.down;
+                     }
+                     else if (jkCutscene_isRendering && event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN && event.gbutton.button == SDL_GAMEPAD_BUTTON_NORTH) { // y
+@@ -1211,6 +1216,9 @@ void Window_SdlUpdate()
                      jkPlayer_WriteConf(jkPlayer_playerShortName);
                  }
                  
@@ -11893,7 +12113,7 @@ index 157e0583..3c4a0f34 100644
                  exit(-1);
                  break;
              default:
-@@ -1414,11 +1419,34 @@ void Window_RecreateSDL2Window()
+@@ -1414,11 +1422,34 @@ void Window_RecreateSDL2Window()
      stdPlatform_Printf("Recreating SDL2 Window!\n");
      Window_needsRecreate = 0;
  
@@ -11928,7 +12148,7 @@ index 157e0583..3c4a0f34 100644
  
      // HACK: side-step the json stuff
      if (Window_bShouldPopSteamKeyboard) {
-@@ -1426,17 +1454,6 @@ void Window_RecreateSDL2Window()
+@@ -1426,17 +1457,6 @@ void Window_RecreateSDL2Window()
          Window_isHiDpi = 1;
      }
  

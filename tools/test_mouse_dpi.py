@@ -61,6 +61,8 @@ static double stdControl_ReadAxisRaw(int axis) { return counts[axis]; }
 static void stdControl_Reset(void) {}
 static void sithControl_RegisterKeyboardBindings(void) {}
 static void sithControl_MapDefaultsJoystick(void) {}
+static int controllerMigrations;
+static void sithControl_RekindledControllerBindings(void) {controllerMigrations++;}
 static stdControlKeyInfoEntry* sithControl_BindAxis(int f, int axis, int flags) {
     stdControlKeyInfo* keys = &sithControl_aInputFuncToKeyinfo[f];
     if (keys->numEntries == 8) return NULL;
@@ -123,7 +125,10 @@ int main(void) {
     sithControl_SetMouseInverted(0);
     assert(pitchEntry->binaryAxisVal==0.073217f && !sithControl_GetMouseInverted());
     assert(sithControl_WriteConf()); assert(strstr(written,"rpgmousedpi=1600\n"));
+    assert(strstr(written,"rpgcontroller=1\n"));
+    int beforeReload=controllerMigrations;
     char saved[8192];strcpy(saved,written);load(saved);
+    assert(controllerMigrations==beforeReload);
     near(sithControl_GetMouseSensitivity(),0.04f);
     near(sithControl_FindMouseEntry(INPUT_FUNC_PITCH,AXIS_MOUSE_Y)->binaryAxisVal,0.073217f);
     // Explicit sensitivity changes use actual multipliers regardless of old DPI metadata.

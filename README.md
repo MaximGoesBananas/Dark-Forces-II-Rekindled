@@ -72,6 +72,8 @@ Star Wars Jedi Knight: Dark Forces II **Rekindled** refreshes the single-player 
 
 - **Streamlined settings and improved mouse controls**
 
+- **Controller support for gameplay, menus, and upgrades**
+
 - **Automatic resolution support, including 4K and ultrawide**
 
 - **Auto-save feature, and quick loading for manual quick-saves**
@@ -95,6 +97,10 @@ Download the Rekindled launcher from [**Releases**](https://github.com/MaximGoes
 Rekindled installs beside the original game, and the launcher can remove it again. Saves and settings are shared with your existing installation, so back up your saves before trying it.
 
 ## Compatibility
+
+See the [controller guide](docs/UPGRADES.md#controller-controls) for the default layout. The sensitivity slider and Invert look setting also control the right stick.
+
+SteamOS and Proton have not been verified.
 
 Rekindled focuses on refreshing the single-player campaign, so **multiplayer is not supported.**
 

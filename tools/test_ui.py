@@ -173,6 +173,23 @@ int main(void) {
     jkRpg_menuPage = PAGE_JEDI; jkRpg_menuSel = -1; draw(); assert(jkRpg_menuSel == UP_FORCE && !shown("Lightsaber"));
     puts("Upgrade menu: fits 4:3, 16:9 and extreme screens; hidden pages skipped; 1-2 branch selection passed");
 
+    startingKit(); jkRpg_menuPage = PAGE_CHARACTER; jkRpg_menuSel = -1; draw();
+    stdControl_bHasPhysicalJoystick = 1;
+    draw(); assert(strstr(text, "A: buy or take back"));
+    int first = jkRpg_menuSel;
+    press(KEY_JOY1_HDOWN); assert(jkRpg_menuSel != first);
+    press(KEY_JOY1_HUP); assert(jkRpg_menuSel == first);
+    toggled = -1; press(KEY_JOY1_B1); assert(toggled == first);
+    toggled = -1; jkRpg_MenuInput(&player); assert(toggled == -1);
+    joyAxes[AXIS_JOY1_Y] = 0.8; jkRpg_MenuInput(&player);
+    int second = jkRpg_menuSel; assert(second != first);
+    jkRpg_MenuInput(&player); assert(jkRpg_menuSel == second);
+    joyAxes[AXIS_JOY1_Y] = 0; jkRpg_MenuInput(&player);
+    press(KEY_JOY1_B11); assert(jkRpg_menuPage == PAGE_SUPPLIES);
+    press(KEY_JOY1_B10); assert(jkRpg_menuPage == PAGE_CHARACTER);
+    numKeys = 1; keys[0] = KEY_JOY1_B2; assert(!jkRpg_MenuInput(&player)); numKeys = 0;
+    stdControl_bHasPhysicalJoystick = 0;
+
     // Level plate on the left HUD gauge, 54 of the gauge's 59 pixels wide
     // and centred on it at every HUD size, on screen and clear of the right gauge; while points wait
     // it shows the pulsing arrow and the menu key instead of the level, or SETUP when unbound.

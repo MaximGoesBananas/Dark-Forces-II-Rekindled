@@ -39,6 +39,11 @@ struct { int width, height; } Video_format;
 flex_t jkPlayer_hudScale = 2;
 ItemType sithInventory_g_aTypes[200];
 void stdControl_ReadKey(int key, int* count);
+enum { AXIS_JOY1_X, AXIS_JOY1_Y };
+enum { KEY_JOY1_B1=300, KEY_JOY1_B2, KEY_JOY1_B10, KEY_JOY1_B11, KEY_JOY1_HUP, KEY_JOY1_HDOWN, KEY_JOY1_HLEFT, KEY_JOY1_HRIGHT };
+static int stdControl_bHasPhysicalJoystick;
+static flex_t joyAxes[2];
+static flex_t stdControl_ReadAxis(int axis) { return joyAxes[axis]; }
 stdFont* stdFont_Load(char* path, int a, int b);
 void stdFont_Free(stdFont* f);
 stdBitmap* stdBitmap_Load(char* path, int a, int b);

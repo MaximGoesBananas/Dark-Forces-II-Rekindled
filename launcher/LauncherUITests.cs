@@ -27,6 +27,43 @@ static class LauncherUITests
         Application.DoEvents();
         using(var image=new Bitmap(form.Width,form.Height)) { form.DrawToBitmap(image,new Rectangle(Point.Empty,form.Size)); image.Save(path); }
     }
+    static void CheckDisplays(string package, string root) {
+        // Exercise the published form itself; desktop dimensions and DPI are simulated
+        // without changing the user's display settings or installing the game.
+        var assembly=package.EndsWith(".zip") ? typeof(LauncherForm).Assembly : Assembly.LoadFile(Path.GetFullPath(package));
+        Func<Stream> payload=()=>package.EndsWith(".zip") ? File.OpenRead(package) : assembly.GetManifestResourceStream("mod.zip");
+        var installer=Activator.CreateInstance(assembly.GetType("ModLauncher.Installer"),new object[]{payload});
+        int[,] desktops={{640,480,100},{1024,768,100},{1280,720,100},{1920,1080,100},
+            {1920,1080,125},{1920,1080,150},{2560,1440,150},{3440,1440,150},
+            {3840,2160,150},{3840,2160,200},{3840,2160,300},{5120,1440,125}};
+        for(int i=0;i<desktops.GetLength(0);i++) {
+            using(var form=(Form)Activator.CreateInstance(assembly.GetType("ModLauncher.LauncherForm"),new object[]{installer})) {
+                form.ShowInTaskbar=false;form.StartPosition=FormStartPosition.Manual;form.Location=new Point(-10000,-10000);
+                SetWindowLong(form.Handle,-20,GetWindowLong(form.Handle,-20)|0x08000000);
+                form.Show();Application.DoEvents();
+                float currentDpi;
+                using(var graphics=form.CreateGraphics()) currentDpi=graphics.DpiX;
+                float factor=desktops[i,2]/100f*96f/currentDpi;
+                form.Scale(new SizeF(factor,factor));
+                // Restore the design size before applying each hypothetical work area.
+                form.ClientSize=new Size(760*desktops[i,2]/100,595*desktops[i,2]/100);
+                form.Size=new Size(Math.Min(form.Width,desktops[i,0]-24),Math.Min(form.Height,desktops[i,1]-72));
+                form.Controls.OfType<TextBox>().Single().Text=root;
+                form.PerformLayout();Application.DoEvents();
+                string scenario=desktops[i,0]+"x"+desktops[i,1]+" at "+desktops[i,2]+"%";
+                foreach(Control control in form.Controls) {
+                    if(!(control is Button) && !(control is TextBox)) continue;
+                    form.ScrollControlIntoView(control);Application.DoEvents();
+                    Check(form.ClientRectangle.Contains(control.Bounds),scenario+": "+control.AccessibleName+" "+control.Text+" remains reachable");
+                    if(control is Button)
+                        Check(TextRenderer.MeasureText(control.Text,control.Font).Width<=control.Width,scenario+": button text fits");
+                }
+                var heading=form.Controls.OfType<Label>().Single(x=>x.Text=="REKINDLED");
+                Check(TextRenderer.MeasureText(heading.Text,heading.Font).Width<=heading.Width,scenario+": heading fits");
+            }
+        }
+        Console.WriteLine("Launcher display layouts: 12 resolution/scaling combinations passed (simulated desktops).");
+    }
     [STAThread] static void Main(string[] args)
     {
         Application.EnableVisualStyles();
@@ -95,6 +132,7 @@ static class LauncherUITests
             Check(play.Bottom<=form.ClientSize.Height,"Play remains reachable at a larger scale");
             Capture(form,Path.Combine(output,"scaled.png"));
         }
+        CheckDisplays(args[0],root);
         Console.WriteLine("Launcher UI: "+checks+" checks passed.");
     }
 }

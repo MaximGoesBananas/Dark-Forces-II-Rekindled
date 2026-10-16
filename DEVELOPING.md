@@ -92,6 +92,7 @@ Release builds disable that collector and retain ordinary screenshots.
 
 ## References
 
+- [Code and design questions](docs/QUESTIONS.md)
 - [Progression and XP](docs/PROGRESSION.md)
 - [Upgrades and combat](docs/UPGRADES.md)
 - [Crowds and clothing](docs/CIVILIANS.md)

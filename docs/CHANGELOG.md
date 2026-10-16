@@ -1,4 +1,10 @@
-# Campaign features
+# Updates
+
+## 1.1
+
+- Fixed some things for controller support
+
+## Campaign features
 
 - Campaign progression with upgrades for abilities, weapons, and equipment
 - Rebalanced combat, enemies, and supplies

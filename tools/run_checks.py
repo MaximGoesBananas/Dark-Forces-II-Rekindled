@@ -22,6 +22,7 @@ if unknown:
 jobs = [(name, []) for name in dict.fromkeys(names)]
 if args.windows:
     jobs.append(("bindings", ["--windows"]))
+    jobs.append(("controller", ["--windows"]))
 started = time.monotonic()
 failed = []
 for name, extra in jobs:
