@@ -112,6 +112,15 @@ Fresh profiles use left-click for primary fire and right-click for secondary fir
 Space jumps. Existing custom bindings remain as saved. Resetting mouse controls restores
 these same defaults.
 
+Setup > Key bindings lists mouse buttons beside the keys. Select an action, choose Add
+and press a key or Mouse Button 1-5; a button already in use asks before moving it.
+Restore Defaults resets the mouse buttons too, while sensitivity and inversion stay as set.
+
+F5 quicksaves and F9 loads the quicksave. Force powers start unbound: Next/Previous Force
+Power and Use Force Power select and use them, and each power can be given its own key or
+mouse button. Profiles from earlier versions that still have the original F5-F8 Force keys
+lose those four once and get quicksave back on F5; Force keys you changed yourself are kept.
+
 A brief yellow screen flash accompanies a level-up and fades through the normal
 damage/pickup effect system. Multiple levels from one XP award produce one flash.
 

@@ -1,5 +1,9 @@
 # Updates
 
+## 1.2
+
+- Added mouse button bindings
+
 ## 1.1
 
 - Fixed some things for controller support

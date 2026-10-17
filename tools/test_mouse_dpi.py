@@ -76,6 +76,7 @@ static void sithControl_RegisterMouseBindings(void) {
 }
 static void sithControl_MigrateBactaKey(int setting) {}
 static void sithControl_MigrateVisionKey(int setting) {}
+static void sithControl_MigrateForceKeys(int setting) {}
 static struct { int numArgs; struct { char* key; char* value; } aArgs[8]; } stdConffile_g_entry;
 static const char* conf;
 static char line[256], written[8192];

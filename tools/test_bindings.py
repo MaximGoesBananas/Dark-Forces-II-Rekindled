@@ -111,7 +111,9 @@ if windows:
     binary = binary.with_suffix(".exe")
 try:
     cfile.write_text(harness + function("Gui/jkGUIKeyboard.c", "jkGuiKeyboard_DIKNumToStr") + "\n" +
-                     function("Devices/sithControl.c", "sithControl_GetKey") + function("Devices/sithControl.c", "sithControl_RegisterMouseBindings") +
+                     function("Devices/sithControl.c", "sithControl_GetKey") + "void sithControl_BindDefaultMouseButtons(void);\n" +
+                     function("Devices/sithControl.c", "sithControl_RegisterMouseBindings") +
+                     function("Devices/sithControl.c", "sithControl_BindDefaultMouseButtons") +
                      "\n" + "\n".join(function("Main/jkRpg.c", name) for name in
                      ("jkRpg_BindingName", "jkRpg_MenuKeyName", "jkRpg_MenuHint", "jkRpg_MenuPressed")) + checks)
     compiler = "x86_64-w64-mingw32-gcc" if windows else "cc"

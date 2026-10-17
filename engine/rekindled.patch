@@ -582,7 +582,7 @@ index 772381fa..e1491c49 100644
  
  void sithCogFunctionThing_GetThingTemplate(sithCog *pCog)
 diff --git a/src/Devices/sithControl.c b/src/Devices/sithControl.c
-index 58ae328b..88b236ab 100644
+index 58ae328b..9bda1434 100644
 --- a/src/Devices/sithControl.c
 +++ b/src/Devices/sithControl.c
 @@ -1,4 +1,5 @@
@@ -622,10 +622,43 @@ index 58ae328b..88b236ab 100644
  #endif
  }
  
-@@ -553,8 +564,47 @@ LABEL_7:
+@@ -553,8 +564,81 @@ LABEL_7:
      }
  }
  
++static int sithControl_KeyBound(unsigned int dxKeyNum)
++{
++    for (int i = 0; i < INPUT_FUNC_MAX; i++)
++        for (uint32_t j = 0; j < sithControl_aInputFuncToKeyinfo[i].numEntries; j++)
++            if ((sithControl_aInputFuncToKeyinfo[i].aEntries[j].flags & INPUT_MAPPING_FLAG_DXKEY)
++                && sithControl_aInputFuncToKeyinfo[i].aEntries[j].dxKeyNum == dxKeyNum)
++                return 1;
++    return 0;
++}
++
++// RPG: earlier profiles received the stock Force keys F5-F8, and F5 took quicksave away.
++// Once per profile, an untouched stock set (exactly those four keys) is removed and quicksave
++// returns to F5 when nothing else uses it. "rpgforcekeys" marks this as done, so Force keys
++// the player binds afterwards stay; customised Force keys are never touched.
++static void sithControl_MigrateForceKeys(int hasForceKeySetting)
++{
++    static const unsigned int stockKeys[4] = {DIK_F5, DIK_F6, DIK_F7, DIK_F8};
++    if (hasForceKeySetting)
++        return;
++    int untouched = 1;
++    for (int i = 0; i < 4; i++) {
++        stdControlKeyInfo* keys = &sithControl_aInputFuncToKeyinfo[INPUT_FUNC_ACTIVATE0 + i];
++        if (keys->numEntries != 1 || !(keys->aEntries[0].flags & INPUT_MAPPING_FLAG_DXKEY)
++            || keys->aEntries[0].dxKeyNum != stockKeys[i])
++            untouched = 0;
++    }
++    if (untouched)
++        for (int i = 0; i < 4; i++)
++            sithControl_aInputFuncToKeyinfo[INPUT_FUNC_ACTIVATE0 + i].numEntries = 0;
++    if (!sithControl_aInputFuncToKeyinfo[INPUT_FUNC_GAMESAVE].numEntries && !sithControl_KeyBound(DIK_F5))
++        sithControl_BindControl(INPUT_FUNC_GAMESAVE, DIK_F5, 0);
++}
++
 +// RPG: profiles saved before the bacta key existed get R, as fresh profiles do, when R is unused
 +// or is only one of several Next Item keys (the stock R/] pair; Next Item keeps the others).
 +// "rpgbactakey" in the profile marks it as already offered, so a removed binding stays removed.
@@ -667,10 +700,11 @@ index 58ae328b..88b236ab 100644
  {
 +    sithControl_mouseDpi = 800; // Old profiles keep their exact mouse response.
 +    int hasUpgradeMenuSetting = 0, hasBactaSetting = 0, hasVisionSetting = 0, hasControllerSetting = 0;
++    int hasForceKeySetting = 0;
      unsigned int v0; // eax
      int v1; // esi
      unsigned int dxKeyNum; // ebx
-@@ -590,6 +640,30 @@ int sithControl_ReadConf()
+@@ -590,6 +674,34 @@ int sithControl_ReadConf()
      {
          if ( !_strcmp(stdConffile_g_entry.aArgs[0].key, "end.") )
              break;
@@ -690,6 +724,10 @@ index 58ae328b..88b236ab 100644
 +            hasControllerSetting = 1;
 +            continue;
 +        }
++        if (!_strcmp(stdConffile_g_entry.aArgs[0].key, "rpgforcekeys")) {
++            hasForceKeySetting = 1;
++            continue;
++        }
 +        if (!_strcmp(stdConffile_g_entry.aArgs[0].key, "rpgmousedpi")) {
 +            int dpi;
 +            char trailing;
@@ -701,7 +739,7 @@ index 58ae328b..88b236ab 100644
          v18 = 0.0;
          if ( !_strcmp(stdConffile_g_entry.aArgs[0].value, "axis") )
          {
-@@ -600,7 +674,7 @@ int sithControl_ReadConf()
+@@ -600,7 +712,7 @@ int sithControl_ReadConf()
          {
              v0 = _atoi(stdConffile_g_entry.aArgs[1].value);
              v1 = v0;
@@ -710,7 +748,7 @@ index 58ae328b..88b236ab 100644
              {
                  dxKeyNum = _atoi(stdConffile_g_entry.aArgs[2].value);
                  dxKeyNum_ = dxKeyNum;
-@@ -677,6 +751,33 @@ LABEL_30:
+@@ -677,6 +789,35 @@ LABEL_30:
              }
          }
      }
@@ -726,6 +764,8 @@ index 58ae328b..88b236ab 100644
 +        if (!kUsed)
 +            sithControl_BindControl(INPUT_FUNC_UPGRADEMENU, DIK_K, 0);
 +    }
++
++    sithControl_MigrateForceKeys(hasForceKeySetting);
 +
 +    // RPG: profiles saved before quick load existed get it on F9, unless F9 already does something.
 +    if (!sithControl_aInputFuncToKeyinfo[INPUT_FUNC_QUICKLOAD].numEntries) {
@@ -744,7 +784,7 @@ index 58ae328b..88b236ab 100644
      return 1;
  }
  
-@@ -706,6 +807,12 @@ int sithControl_WriteConf()
+@@ -706,6 +847,13 @@ int sithControl_WriteConf()
  
      }
  
@@ -754,10 +794,11 @@ index 58ae328b..88b236ab 100644
 +    stdConffile_WriteLine("rpgbactakey=1\n");
 +    stdConffile_WriteLine("rpgvisionkey=1\n");
 +    stdConffile_WriteLine("rpgcontroller=1\n");
++    stdConffile_WriteLine("rpgforcekeys=1\n");
      stdConffile_WriteLine("end.\n");
      return 1;
  }
-@@ -820,6 +927,19 @@ LABEL_23:
+@@ -820,6 +968,19 @@ LABEL_23:
      return v6;
  }
  
@@ -777,7 +818,7 @@ index 58ae328b..88b236ab 100644
  flex_t sithControl_GetKeyAsAxis(int axisId)
  {
      uint32_t v1; // ebp
-@@ -858,6 +978,7 @@ LABEL_12:
+@@ -858,6 +1019,7 @@ LABEL_12:
                              v4 = -v4;
                          if ( v2->binaryAxisVal != 0.0 )
                              v4 = v4 * v2->binaryAxisVal;
@@ -785,7 +826,7 @@ index 58ae328b..88b236ab 100644
                          v6 = v6 + v4;
                      }
                      goto LABEL_18;
-@@ -872,6 +993,16 @@ LABEL_18:
+@@ -872,6 +1034,16 @@ LABEL_18:
      return v6;
  }
  
@@ -802,7 +843,7 @@ index 58ae328b..88b236ab 100644
  flex_t sithControl_GetAxis(int axisId)
  {
      stdControlKeyInfoEntry *v1; // edi
-@@ -897,7 +1028,9 @@ flex_t sithControl_GetAxis(int axisId)
+@@ -897,7 +1069,9 @@ flex_t sithControl_GetAxis(int axisId)
                  v5 = (flex_d_t)stdControl_ReadAxisRaw(v2->dxKeyNum);
                  if ( (v4 & 4) != 0 )
                      v5 = -v5;
@@ -813,7 +854,7 @@ index 58ae328b..88b236ab 100644
                      v5 = v5 * v2->binaryAxisVal;
                  v7 = v5 + v7;
              }
-@@ -910,6 +1043,60 @@ flex_t sithControl_GetAxis(int axisId)
+@@ -910,6 +1084,60 @@ flex_t sithControl_GetAxis(int axisId)
      return v7;
  }
  
@@ -874,7 +915,7 @@ index 58ae328b..88b236ab 100644
  void sithControl_RegisterControlCallback(sithControl_handler_t pfCallback)
  {
      // The original engine had an off-by-one here?
-@@ -955,6 +1142,8 @@ int sithControl_HandlePlayer(SithThing *player, flex_t deltaSecs)
+@@ -955,6 +1183,8 @@ int sithControl_HandlePlayer(SithThing *player, flex_t deltaSecs)
      if ( player->moveType != SITH_MT_PHYSICS )
          return 0;
  
@@ -883,7 +924,7 @@ index 58ae328b..88b236ab 100644
      // Added: dedicated
      if (sithNet_isServer && jkGuiNetHost_bIsDedicated) {
          sithControl_PlayerLook(player, deltaSecs);
-@@ -1622,6 +1811,15 @@ void sithControl_PlayerMovement(SithThing *player)
+@@ -1622,6 +1852,15 @@ void sithControl_PlayerMovement(SithThing *player)
          if ( v11 < 0.0 )
              y_vel = y_vel * 0.5;
          player->physicsParams.acceleration.y = y_vel;
@@ -899,7 +940,7 @@ index 58ae328b..88b236ab 100644
          if ( v11 > 0.2 && (sithWeapon_controlOptions & 0x10) != 0 )
          {
              if ( (player->actorParams.flags & SITH_AF_VIEWCENTRED) == 0 )
-@@ -1853,19 +2051,17 @@ void sithControl_RegisterKeyboardBindings()
+@@ -1853,19 +2092,17 @@ void sithControl_RegisterKeyboardBindings()
          sithControl_BindControl(INPUT_FUNC_SLIDE, DIK_NUMPAD3, 0);
      }
      
@@ -924,7 +965,7 @@ index 58ae328b..88b236ab 100644
      sithControl_BindControl(INPUT_FUNC_PITCH, DIK_PRIOR, 4);
      sithControl_BindControl(INPUT_FUNC_PITCH, DIK_NEXT, 0);
      sithControl_BindControl(INPUT_FUNC_CENTER, DIK_HOME, 0);
-@@ -1880,19 +2076,21 @@ void sithControl_RegisterKeyboardBindings()
+@@ -1880,19 +2117,21 @@ void sithControl_RegisterKeyboardBindings()
      sithControl_BindControl(INPUT_FUNC_SELECT7, DIK_7, 0);
      sithControl_BindControl(INPUT_FUNC_SELECT8, DIK_8, 0);
      sithControl_BindControl(INPUT_FUNC_SELECT9, DIK_9, 0);
@@ -950,7 +991,7 @@ index 58ae328b..88b236ab 100644
      sithControl_BindControl(INPUT_FUNC_MAP, DIK_TAB, 0);
      sithControl_BindControl(INPUT_FUNC_INCREASE, DIK_EQUALS, 0);
      sithControl_BindControl(INPUT_FUNC_DECREASE, DIK_MINUS, 0);
-@@ -1906,6 +2104,7 @@ void sithControl_RegisterKeyboardBindings()
+@@ -1906,6 +2145,7 @@ void sithControl_RegisterKeyboardBindings()
  
  void sithControl_DefaultInit()
  {
@@ -958,7 +999,7 @@ index 58ae328b..88b236ab 100644
      stdControlKeyInfoEntry *v6; // eax
      stdControlKeyInfoEntry *v7; // eax
      stdControlKeyInfoEntry *v8; // eax
-@@ -1917,7 +2116,7 @@ void sithControl_DefaultInit()
+@@ -1917,7 +2157,7 @@ void sithControl_DefaultInit()
  
      // Enable joystick by default
  #ifdef QOL_IMPROVEMENTS
@@ -967,7 +1008,7 @@ index 58ae328b..88b236ab 100644
  #else
      sithWeapon_controlOptions = 0x24;
  #endif
-@@ -2046,6 +2245,24 @@ stdControlKeyInfo* sithControl_EnumBindings(sithControlEnumFunc_t pfFunc, int a2
+@@ -2046,6 +2286,24 @@ stdControlKeyInfo* sithControl_EnumBindings(sithControlEnumFunc_t pfFunc, int a2
      v20 = sithControl_aInputFuncToKeyinfo;
      for (int j = 0; j < INPUT_FUNC_MAX; j++)
      {
@@ -992,7 +1033,7 @@ index 58ae328b..88b236ab 100644
          int flags = sithControl_inputFuncToControlType[v7];
  
          v18 = 0;
-@@ -2111,7 +2328,7 @@ void sithControl_RegisterMouseBindings()
+@@ -2111,7 +2369,7 @@ void sithControl_RegisterMouseBindings()
  #ifdef QOL_IMPROVEMENTS
      v10 = sithControl_BindAxis(INPUT_FUNC_TURN, AXIS_MOUSE_X, INPUT_MAPPING_FLAG_AXIS_REVERSED | INPUT_MAPPING_FLAG_RAW_AXIS);
      if ( v10 )
@@ -1001,7 +1042,7 @@ index 58ae328b..88b236ab 100644
  #else
      v10 = sithControl_BindAxis(INPUT_FUNC_TURN, AXIS_MOUSE_X, INPUT_MAPPING_FLAG_AXIS_REVERSED | INPUT_MAPPING_FLAG_RAW_AXIS);
      if ( v10 )
-@@ -2121,7 +2338,7 @@ void sithControl_RegisterMouseBindings()
+@@ -2121,7 +2379,7 @@ void sithControl_RegisterMouseBindings()
  #ifdef QOL_IMPROVEMENTS
      v10 = sithControl_BindAxis(INPUT_FUNC_PITCH, AXIS_MOUSE_Y, INPUT_MAPPING_FLAG_AXIS_REVERSED | INPUT_MAPPING_FLAG_RAW_AXIS); // Non-inverted by default, fight me lol
      if ( v10 ) 
@@ -1010,16 +1051,38 @@ index 58ae328b..88b236ab 100644
  #else
      v10 = sithControl_BindAxis(INPUT_FUNC_PITCH, AXIS_MOUSE_Y, INPUT_MAPPING_FLAG_RAW_AXIS);
      if ( v10 ) 
-@@ -2133,7 +2350,7 @@ void sithControl_RegisterMouseBindings()
+@@ -2132,11 +2390,29 @@ void sithControl_RegisterMouseBindings()
+     if ( v10 )
          v10->binaryAxisVal = 4.0;
      
++    sithControl_BindDefaultMouseButtons();
++}
++
++// RPG: the mouse buttons are rebound on the Key bindings page, so its Restore defaults resets them
++// too. The mouse axes keep Setup's sensitivity and inversion.
++void sithControl_BindDefaultMouseButtons(void)
++{
      sithControl_DefaultHelper(INPUT_FUNC_FIRE1, KEY_MOUSE_B1, 2);
 -    sithControl_DefaultHelper(INPUT_FUNC_JUMP, KEY_MOUSE_B2, 2);
 +    sithControl_DefaultHelper(INPUT_FUNC_FIRE2, KEY_MOUSE_B2, 2);
      sithControl_DefaultHelper(INPUT_FUNC_FIRE2, KEY_MOUSE_B3, 2);
  }
  
-@@ -2403,6 +2620,30 @@ void sithControl_RestoreAxisBindings()
++void sithControl_RebindMouseButtons(void)
++{
++    for (int i = 0; i < INPUT_FUNC_MAX; i++) {
++        stdControlKeyInfo* keys = &sithControl_aInputFuncToKeyinfo[i];
++        for (uint32_t j = keys->numEntries; j-- > 0;)
++            if ((keys->aEntries[j].flags & INPUT_MAPPING_FLAG_DXKEY) && KEY_IS_MOUSE(keys->aEntries[j].dxKeyNum))
++                sithControl_UnbindFunctionIndex(i, j);
++    }
++    sithControl_BindDefaultMouseButtons();
++}
++
+ void sithControl_RebindMouse()
+ {
+     stdControlKeyInfo *v0; // edx
+@@ -2403,6 +2679,30 @@ void sithControl_RestoreAxisBindings()
      }
  }
  
@@ -1050,7 +1113,7 @@ index 58ae328b..88b236ab 100644
  void sithControl_MapDefaultsJoystick() {
  #if !defined(TARGET_RETRO_HOMEBREW) && defined(QOL_IMPROVEMENTS)
      stdControlKeyInfoEntry* mapped;
-@@ -2449,6 +2690,7 @@ void sithControl_MapDefaultsJoystick() {
+@@ -2449,6 +2749,7 @@ void sithControl_MapDefaultsJoystick() {
  
      sithControl_DefaultHelper(INPUT_FUNC_FIRE2, KEY_JOY1_B16, 2); // ltrig
      sithControl_DefaultHelper(INPUT_FUNC_FIRE1, KEY_JOY1_B17, 2); // rtrig
@@ -1059,7 +1122,7 @@ index 58ae328b..88b236ab 100644
      sithControl_BindControl(INPUT_FUNC_FORWARD, KEY_JOY1_HUP, 0);
      sithControl_BindControl(INPUT_FUNC_NEXTSKILL, KEY_JOY1_HDOWN, 0);
 diff --git a/src/Devices/sithControl.h b/src/Devices/sithControl.h
-index b3fdd9bf..1445bd7b 100644
+index b3fdd9bf..1e188a4a 100644
 --- a/src/Devices/sithControl.h
 +++ b/src/Devices/sithControl.h
 @@ -70,6 +70,12 @@ void sithControl_DefaultInit();
@@ -1075,6 +1138,15 @@ index b3fdd9bf..1445bd7b 100644
  int sithControl_GetKey(int func, int* out);
  
  void sithControl_RegisterKeyFunction(int a);
+@@ -77,6 +83,8 @@ stdControlKeyInfo* sithControl_EnumBindings(sithControlEnumFunc_t pfFunc, int a2
+ void sithControl_RegisterMouseBindings(); // Added
+ void sithControl_RebindMouse();
+ void sithControl_RebindKeyboard();
++void sithControl_BindDefaultMouseButtons(void); // RPG
++void sithControl_RebindMouseButtons(void); // RPG
+ void sithControl_RebindJoystick();
+ 
+ void sithControl_MapDefaultsJoystick();
 diff --git a/src/Devices/sithSoundMixer.c b/src/Devices/sithSoundMixer.c
 index 04f1e74d..8eaf4c87 100644
 --- a/src/Devices/sithSoundMixer.c
@@ -2417,7 +2489,7 @@ index 80646a9e..5baa625a 100644
  int stdConffile_Write(const char* pData, int size);
  int stdConffile_Printf(char *pFormat, ...);
 diff --git a/src/Gui/jkGUIKeyboard.c b/src/Gui/jkGUIKeyboard.c
-index 5939e276..110110f8 100644
+index 5939e276..0eab05c3 100644
 --- a/src/Gui/jkGUIKeyboard.c
 +++ b/src/Gui/jkGUIKeyboard.c
 @@ -48,36 +48,13 @@ static jkGuiMenu jkGuiKeyboard_menu = {jkGuiKeyboard_aElements, 0, 225, 255, 15,
@@ -2464,7 +2536,65 @@ index 5939e276..110110f8 100644
  }
  
  int jkGuiKeyboard_sub_411E40(Darray *pDarr)
-@@ -530,6 +507,8 @@ int jkGuiKeyboard_Show()
+@@ -159,7 +136,7 @@ void jkGuiKeyboard_sub_411F40(jkGuiElement *pElement, Darray *pDarr)
+     v21 = -1;
+     v20 = 0;
+     jkGuiRend_DarrayFreeEntry(pDarr);
+-    sithControl_EnumBindings(jkGuiKeyboard_EnumBindings, 1, 0, 0, pDarr);
++    sithControl_EnumBindings(jkGuiKeyboard_EnumBindings, 1, 0, 1, pDarr); // RPG: keys and mouse buttons (axes stay hidden)
+     if ( pDarr->total > 0 )
+     {
+         do
+@@ -229,8 +206,6 @@ int jkGuiKeyboard_EnumBindings(int32_t inputFuncIdx, const char *pInputFuncStr,
+     char16_t *v9; // eax
+     BOOL v10; // eax
+     const char *v11; // ecx
+-    int v12; // ecx
+-    const stdControlDikStrToNum *v13; // eax
+     jkGuiKeyboardEntry *v14; // eax
+     const char *v16; // [esp-8h] [ebp-240h]
+     char16_t *v17; // [esp+14h] [ebp-224h]
+@@ -264,21 +239,8 @@ int jkGuiKeyboard_EnumBindings(int32_t inputFuncIdx, const char *pInputFuncStr,
+                 }
+                 else
+                 {
+-                    v12 = 0;
+-                    v13 = stdControl_aDikNumToStr;
+-                    while ( a5 != v13->val )
+-                    {
+-                        ++v13;
+-                        ++v12;
+-                        if ( v13 >= &stdControl_aDikNumToStr[148] )
+-                        {
+-                            v11 = "KEY_UNKNOWN";
+-                            goto LABEL_25;
+-                        }
+-                    }
+-                    v11 = stdControl_aDikNumToStr[v12].pStr;
++                    v11 = jkGuiKeyboard_DIKNumToStr(a5, 0); // RPG: covers the whole table, mouse buttons included
+                 }
+-LABEL_25:
+                 v9 = jkStrings_GetUniStringWithFallback(v11);
+             }
+             jk_snwprintf(wStr, 0xFFu, u"%ls%ls\t%ls", v17, v8, v9);
+@@ -367,7 +329,7 @@ void jkGuiKeyboard_sub_4123C0(jkGuiMenu *pMenu)
+     {
+         v10 = 0;
+         stdControl_ReadKey(v4, &v10);
+-        if ( v10 && (KEY_IS_BUTTON(v4)) && !KEY_IS_MOUSE(v4) )
++        if ( v10 && (KEY_IS_BUTTON(v4) || KEY_IS_MOUSE(v4)) ) // RPG: mouse buttons can be bound here
+         {
+             if ( v4 == 1 )
+                 goto LABEL_27;
+@@ -508,6 +470,7 @@ int jkGuiKeyboard_RestoreDefaultsClicked(jkGuiElement *pElement, jkGuiMenu *pMen
+     if ( jkGuiDialog_YesNoDialog(v3, v4) )
+     {
+         sithControl_RebindKeyboard();
++        sithControl_RebindMouseButtons(); // RPG
+         jkHudInv_InputInit();
+     }
+     jkGuiKeyboard_sub_411F40(&jkGuiKeyboard_aElements[12], &jkGuiKeyboard_darrEntries);
+@@ -530,6 +493,8 @@ int jkGuiKeyboard_Show()
      jkGuiKeyboard_aElements[12].selectedTextEntry = 0;
      jkGui_sub_412E20(&jkGuiKeyboard_menu, 100, 104, 104);
      jkGui_sub_412E20(&jkGuiKeyboard_menu, 105, 108, 105);
@@ -2474,7 +2604,7 @@ index 5939e276..110110f8 100644
      jkGuiRend_MenuSetEscapeKeyShortcutElement(&jkGuiKeyboard_menu, &jkGuiKeyboard_aElements[16]);
      jkGuiRend_ElementSetClickShortcutScancode(&jkGuiKeyboard_aElements[13], VK_INSERT);
 diff --git a/src/Gui/jkGUIMain.c b/src/Gui/jkGUIMain.c
-index 8523f875..c961b52b 100644
+index 8523f875..acd40790 100644
 --- a/src/Gui/jkGUIMain.c
 +++ b/src/Gui/jkGUIMain.c
 @@ -133,14 +133,39 @@ void jkGuiMain_Show()
@@ -2485,7 +2615,7 @@ index 8523f875..c961b52b 100644
 -    jkGuiMain_elements[9].wstr = openjkdf2_waReleaseCommitShort;
 +    // RPG: the mod's version in place of the engine version and build code (two small lines)
 +    jkGuiMain_elements[8].wstr = (char16_t*)u"Rekindled";
-+    jkGuiMain_elements[9].wstr = (char16_t*)u"v1.0";
++    jkGuiMain_elements[9].wstr = (char16_t*)u"v1.2";
 +    jkGuiMain_elements[1].bIsVisible = 0; // RPG: no multiplayer
 +    jkGuiMain_elements[3].bIsVisible = 0; // RPG: no player screen (the profile is chosen automatically)
 +#ifdef QOL_IMPROVEMENTS
@@ -3651,7 +3781,7 @@ index 5dbc7e9d..f25bec80 100644
  
    return 1;
 diff --git a/src/Main/jkHudInv.c b/src/Main/jkHudInv.c
-index b3a014be..708784bb 100644
+index b3a014be..2c9b1ab3 100644
 --- a/src/Main/jkHudInv.c
 +++ b/src/Main/jkHudInv.c
 @@ -1,4 +1,5 @@
@@ -3668,6 +3798,18 @@ index b3a014be..708784bb 100644
      return 1;
  }
  
+@@ -754,10 +756,7 @@ void jkHudInv_InputInit()
+     sithControl_BindControl(INPUT_FUNC_ACTIVATE16, DIK_F2, 0);
+     sithControl_BindControl(INPUT_FUNC_ACTIVATE15, DIK_F3, 0);
+     sithControl_BindControl(INPUT_FUNC_ACTIVATE14, DIK_F4, 0);
+-    sithControl_BindControl(INPUT_FUNC_ACTIVATE0, DIK_F5, 0);
+-    sithControl_BindControl(INPUT_FUNC_ACTIVATE1, DIK_F6, 0);
+-    sithControl_BindControl(INPUT_FUNC_ACTIVATE2, DIK_F7, 0);
+-    sithControl_BindControl(INPUT_FUNC_ACTIVATE3, DIK_F8, 0);
++    // RPG: Force powers start unbound (F5 is quicksave, F9 quick load); players bind them in Setup.
+ }
+ 
+ int jkHudInv_InitItems()
 diff --git a/src/Main/jkMain.c b/src/Main/jkMain.c
 index c0f4afee..bdd252e7 100644
 --- a/src/Main/jkMain.c
